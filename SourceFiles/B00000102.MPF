@@ -1,0 +1,115 @@
+;-      PROGRAM GLOWNY 02 Z PODAJNIKIEM      -
+; PROGRAM NAME: B000001_01.mpf
+; ORDER       : B000001
+; MACHINE     : HSTM_500_SIM840D_Py
+;             : HSTM500 - HAMUEL: 5-axis milling machine - SIM840D Traori PP_Script
+; CONTROL     : SINUMERIK 840D
+;----------------------------------------
+; TYP MOCOWANIA : Grip&PinWelding
+;N10 ASTART:
+;N11 U_A_ADPT_LENGTH=0 ; wstawiono
+;N12 U_C_ADPT_LENGTH=0 ; wstawiono
+;N13 U_RAW_PART_LENGTH=398.1 ; wstawiono
+N14 KOPP_ON ; sprzezenie osi
+PRESS_OFF
+STOPRE
+;WP_CH
+M397 ; aktywacja osi C
+N16 G0 G53 D0 Z540 
+N17 G0 X-300 
+;
+N19 ;----------------------------------
+;
+N21 G0 G53 Z540 D0
+N22 G0 G53 X-200 Y150 A0 B0
+N23 ;
+N24 STOPRE
+N25 T_INI
+N26 T_START(1)
+N27 E_ZDARZ=1 ; ACS - start obrobki
+M399 ;otwarcie szczek
+M0
+G1 U613.1 F1500 ;dojazd na zlapanie nita
+G91
+G1 U-30 F100 ;dojazd na zacisk szczek
+G90
+M398 ;zamkniecie szczek
+PRESS_ON(800)
+;---------------------------------------------
+;usunieto podprogram 09
+;usunieto podprogram 09
+;---------------------------------------------
+N30 PROG_B00000111:
+N31 EXTCALL("B00000111")
+;---------------------------------------------
+N32 PROG_B00000113:
+N33 EXTCALL("B00000113")
+;---------------------------------------------
+N34 PROG_B00000114:
+N35 EXTCALL("B00000114")
+;---------------------------------------------
+N36 PROG_B00000132:
+N37 EXTCALL("B00000132")
+;---------------------------------------------
+N38 PROG_B00000140:
+N39 EXTCALL("B00000140")
+;---------------------------------------------
+N40 PROG_B00000141:
+N41 EXTCALL("B00000141")
+;---------------------------------------------
+N42 PROG_B00000147:
+N43 EXTCALL("B00000147")
+;---------------------------------------------
+N44 PROG_B00000149:
+N45 EXTCALL("B00000149")
+;---------------------------------------------
+N46 PROG_B00000133:
+N47 EXTCALL("B00000133")
+;---------------------------------------------
+N48 PROG_B00000134:
+N49 EXTCALL("B00000134")
+;---------------------------------------------
+N50 PROG_B00000138:
+N51 EXTCALL("B00000138")
+;---------------------------------------------
+N52 PROG_B00000151:
+N53 EXTCALL("B00000151")
+;---------------------------------------------
+N54 PROG_B00000152:
+N55 EXTCALL("B00000152")
+;---------------------------------------------
+N56 PROG_B00000139:
+N57 EXTCALL("B00000139")
+;---------------------------------------------
+N58 PROG_B00000160:
+N59 EXTCALL("B00000160")
+;---------------------------------------------
+N60 PROG_B00000181:
+N61 EXTCALL("B00000181")
+;---------------------------------------------
+N62 PROG_B000001_01_183:
+N63 EXTCALL("B00000161")
+;---------------------------------------------
+N64 T_STOP(1)
+N65 STOPRE
+N66 G0 G53 Z550 D0
+N67 T="7756762"
+N68 M6
+N69 ;nastepne narzedzie
+N70 M340 ; plukanie 
+N71 G1 G53 X-200 Y0 Z550 F2000
+N72 G1 A180 F400
+N73 G1 A0
+N74 G1 X-80 F1000
+N75 G1 A180 F400
+N76 G1 A0
+N77 G0 X-200
+N78 M9
+N79 E_ZDARZ=2 ; ACS - koniec obrobki
+N80 PRESS_OFF
+M399 ;otwarcie szczek
+G91
+G1 F500 U130 ;odjazd od kla
+G90
+;GOTOB ASTART
+N82 M30
