@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace ReadNCFilesAsyncTests
@@ -10,67 +8,152 @@ namespace ReadNCFilesAsyncTests
     public class TestAsync
     {
         private static string SourceFiles = (@"SourceFiles");
-        public static async Task ViewMsg()
+        public static async Task ViewErrors()
         {
             List<Task> tasks = new List<Task>();
-            var files = await GetFiles(SourceFiles);
+            var files = GetFiles(SourceFiles);
             foreach (var file in files)
             {
-                tasks.Add(CreateMsgSummary(file));
+                //tasks.Add(???????);
+
+                checkM17(file);
+                checkM6(file);
+                check_E_ZDARZ(file, "E_ZDARZ=3");
+                checklimitedPositionYZ(file);
+
             }
             await Task.WhenAll(tasks);
         }
-        private static async Task CreateMsgSummary(string file)
-        {
-            Console.WriteLine($"Tworzę podsumowanie MSG {file}.");
-            await LongRunningOperation(file);
-            Console.WriteLine($"Podsumowanie Msg {file} utworzone.");
-        }
-        private static async Task LongRunningOperation(string file)
-        {
-            await Task.Delay(1);
-            var nc = GetNcLinesFromNC(file);
-            var valid = nc.Where(n => n.Contains("MSG") && n.Contains("TLID")).Select(n => n);
-            valid.ToList().ForEach(n => Console.WriteLine($"{n}"));
-        }
-        public static List<string> GetNcLinesFromNC(string file)
-        {
-            var ncinfo = new List<string>();
-            if (File.Exists(file))
-            {
-                string[] linesReaded = File.ReadAllLines(file);
-                int lineNb = 1;
 
-                ncinfo.Clear();
-                foreach (string line in linesReaded)
+        private static string check_E_ZDARZ(string fileName, string e_zdarz)
+        {
+            bool warning = false;
+            string txtwarnig = "";
+            if (File.Exists(fileName))
+            {
+                warning = false;
+                if (fileName.Contains("35.SPF") || fileName.Contains("49.SPF"))
                 {
-                    if (line != "")
+                    if (File.Exists(fileName))
                     {
-                        string[] temp = { lineNb.ToString(), line };
-                        ncinfo.Add(line);
-                        lineNb++;
+                        Console.WriteLine($"{fileName}  ... Check E_ZDARZ={e_zdarz} ");
+                        using (StreamReader sr = File.OpenText(fileName))
+                        {
+                            string s = String.Empty;
+                            while ((s = sr.ReadLine()) != null)
+                            {
+                                //do minimal amount of work here
+                                if (s.Contains(e_zdarz))
+                                {
+                                    warning = false;
+                                    break;
+                                }
+                                else
+                                {
+                                    warning = true;
+                                }
+                            }
+                            if (warning == true)
+                            {
+                                txtwarnig = ($"W programie {fileName} brak E_ZDARZ={e_zdarz}");
+                            }
+                        }
                     }
                 }
             }
-            return ncinfo;
-        }
-        public static async Task<List<string>> GetFiles(string dir)
-        {
-            await Task.Delay(1);
-            List<string> listsubprogramms = new List<string>(new string[] { });
-            string[] ncFiles = Directory.GetFiles((dir));
-            foreach (string ncFile in ncFiles)
-            {
-                string extension = Path.GetExtension(Path.GetFileName(ncFile));
-                if (extension.Contains("SPF") || extension.Contains("spf") || extension.Contains("NC"))
-                {
-                    listsubprogramms.Add(ncFile);
-                }
-            }
-            return listsubprogramms;
+            else { txtwarnig = ($"BRAK.PRG => {fileName} nie sprawdzono check_E_ZDARZ={e_zdarz}"); }
+            return txtwarnig;
         }
 
-        public static string checklimitedPositionYZ(string file)
+        private static string checkM6(string fileName)
+        {
+            bool warning = false;
+            string txtwarnig = "";
+            if (File.Exists(fileName) && fileName.Contains(".NC"))
+            {
+                warning = false;
+                string searchtext = "";
+                if (fileName.Contains(".NC"))
+                {
+                    searchtext = "M6";
+                }
+                else
+                {
+                    searchtext = "L9006";
+                }
+                Console.WriteLine($"{fileName}  ... Check {searchtext}");
+                using (StreamReader sr = File.OpenText(fileName))
+                {
+                    string s = String.Empty;
+                    while ((s = sr.ReadLine()) != null)
+                    {
+                        //do minimal amount of work here
+                        if (s.Contains(searchtext))
+                        {
+                            warning = false;
+                            break;
+                        }
+                        else
+                        {
+                            warning = true;
+                        }
+                    }
+                    if (warning == true)
+                    {
+                        txtwarnig = ($"W programie {fileName} brak wymiany narzedzia {searchtext}!!!");
+                    }
+                }
+            }
+            else { txtwarnig = ($"BRAK.PRG => {fileName} nie sprawdzono braku wymiany narzedzia"); }
+            return txtwarnig;
+        }
+
+        private static string checkM17(string fileName)
+        {
+            bool warning = false;
+            string txtwarnig = "";
+            if (File.Exists(fileName))
+            {
+                warning = false;
+                string searchtext = "";
+                if (fileName != ".NC")
+                {
+                    searchtext = "M17";
+                }
+                else
+                {
+                    searchtext = "M30";
+                }
+                Console.WriteLine($"{fileName}  ... Check {searchtext} ");
+                using (StreamReader sr = File.OpenText(fileName))
+                {
+                    string s = String.Empty;
+                    while ((s = sr.ReadLine()) != null)
+                    {
+                        //do minimal amount of work here
+                        if (s.Contains(searchtext))
+                        {
+                            warning = false;
+                            break;
+                        }
+                        else
+                        {
+                            warning = true;
+                        }
+                    }
+                    if (warning == true)
+                    {
+                        txtwarnig = ($"W programie {fileName} brak {searchtext}!!");
+                    }
+                }
+            }
+            else
+            {
+                txtwarnig = ($"BRAK.PRG => {fileName} nie sprawdzono M17");
+            }
+            return txtwarnig;
+        }
+        private static string checklimitedPositionYZ(string file)
         {
             //MessageBox.Show("SPRAWDZANIE PRZEKROCZEN W OSI " + axis,"UWAGA!",MessageBoxButtons.OK, MessageBoxIcon.Information);
             bool warning = false;
@@ -208,7 +291,20 @@ namespace ReadNCFilesAsyncTests
             return txtwarnig;
         }
 
-
+        private static List<string> GetFiles(string dir)
+        {
+            List<string> listsubprogramms = new List<string>(new string[] { });
+            string[] ncFiles = Directory.GetFiles(dir);
+            foreach (string ncFile in ncFiles)
+            {
+                string extension = Path.GetExtension(Path.GetFileName(ncFile));
+                if (extension.Contains("SPF") || extension.Contains("spf") || extension.Contains("NC"))
+                {
+                    listsubprogramms.Add(ncFile);
+                }
+            }
+            return listsubprogramms;
+        }
 
     }
 }
