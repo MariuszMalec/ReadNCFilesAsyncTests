@@ -1,28 +1,110 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
+using System.Linq;
 
 namespace ReadNCFilesAsyncTests
 {
-    public class TestAsync
+    public class TestSync
     {
         private static string SourceFiles = (@"SourceFiles");
-        public static async Task ViewErrors()
+
+        private ILogger _logger;
+
+        public TestSync(ILogger logger)
         {
-            List<Task> tasks = new List<Task>();
+            _logger = logger;
+        }
+
+        public void ViewErrors()
+        {
             var files = GetFiles(SourceFiles);
             foreach (var file in files)
             {
-                tasks.Add(Task.Run(() => checkM17(file)));
-                tasks.Add(Task.Run(() => checkM6(file)));
-                tasks.Add(Task.Run(() => check_E_ZDARZ(file, "E_ZDARZ=3")));
-                tasks.Add(Task.Run(() => checklimitedPositionYZ(file)));
+                checkM17(file);
+                checkM6(file);
+                check_E_ZDARZ(file, "E_ZDARZ=3");
+                //checklimitedPositionYZ(file);
+                checkSyntaxError(file);
             }
-            await Task.WhenAll(tasks);
         }
 
-        private static string check_E_ZDARZ(string fileName, string e_zdarz)
+        private string checkSyntaxError(string file)
+        {
+            if (File.Exists(file))
+            {
+                _logger.Information($"{file}  ... Check checkSyntaxError ");
+                var errors = string.Empty;
+                var words = new List<string>() { "X", "Y", "Z", "A", "B", "F" };
+                var nc = File.ReadAllLines(file);
+
+                var checkingLines = nc.Where(n => !n.StartsWith(';') &&
+                                                      !n.Contains("E_ZDARZ") &&
+                                                      !n.ToLower().Contains("sz") &&
+                                                      !n.ToLower().Contains("cz") &&
+                                                      !n.ToLower().Contains("bezp") &&
+                                                      !n.ToLower().Contains("delta") &&
+                                                      !n.ToLower().Contains("raport") &&
+                                                      !n.ToLower().Contains("fnorm") &&
+                                                      !n.Contains("TRAILON") &&
+                                                      !n.ToLower().Contains("trans") &&
+                                                      !n.ToLower().Contains("trafoof") &&
+                                                      !n.ToLower().Contains("toolno") &&
+                                                      !n.ToLower().Contains(";") &&
+                                                      !n.Contains("FFWON") &&
+                                                      !n.Contains("BRAK ODJAZDU") &&
+                                                      !n.Contains("CYCLE800") &&
+                                                      !n.Contains("MSG") &&
+                                                      !n.Contains("OFFN") &&
+                                                      !n.Contains("GOTO") &&
+                                                      !n.Contains("SOFT") &&
+                                                      !n.Contains("FGROUP") &&
+                                                      !n.Contains("=") &&
+                                                      !n.ToLower().Contains("cycle60"))
+                                            .Where(n => n.Contains($" X") || n.Contains($" Y") || n.Contains($" Z") || n.Contains($" A") || n.Contains($" B") || n.Contains($" F"))
+                                            .Select(n => n)
+                                            ;
+                double number;
+
+                foreach (var line in checkingLines)
+                {
+                    var xValue = line.Split(' ');
+                    if (xValue.Length > 0)
+                    {
+
+                        foreach (var x in xValue)
+                        {
+
+
+                            foreach (string word in words)
+                            {
+
+                                if (x.StartsWith(word))
+                                {
+                                    if (!Double.TryParse(x.Substring(1), out number))
+                                    {
+                                        if (number == 0)
+                                        {
+                                            _logger.Error($"{Path.GetFileName(file)}, Nie mozna z parsowac lini: {line} !");
+                                            return ($"{Path.GetFileName(file)}, Nie mozna z parsowac lini: {line} !");//TODO pomimo bledow mam po wyjsciu pusta liste?
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+
+                    }
+                }
+
+                return errors;
+            }
+            return string.Empty;
+        }
+
+
+        private string check_E_ZDARZ(string fileName, string e_zdarz)
         {
             bool warning = false;
             string txtwarnig = "";
@@ -33,7 +115,7 @@ namespace ReadNCFilesAsyncTests
                 {
                     if (File.Exists(fileName))
                     {
-                        Console.WriteLine($"{fileName}  ... Check E_ZDARZ={e_zdarz} ");
+                        _logger.Information($"{fileName}  ... Check E_ZDARZ={e_zdarz} ");
                         using (StreamReader sr = File.OpenText(fileName))
                         {
                             string s = String.Empty;
@@ -62,7 +144,7 @@ namespace ReadNCFilesAsyncTests
             return txtwarnig;
         }
 
-        private static string checkM6(string fileName)
+        private string checkM6(string fileName)
         {
             bool warning = false;
             string txtwarnig = "";
@@ -78,7 +160,7 @@ namespace ReadNCFilesAsyncTests
                 {
                     searchtext = "L9006";
                 }
-                Console.WriteLine($"{fileName}  ... Check {searchtext}");
+                _logger.Information($"{fileName}  ... Check {searchtext}");
                 using (StreamReader sr = File.OpenText(fileName))
                 {
                     string s = String.Empty;
@@ -98,6 +180,7 @@ namespace ReadNCFilesAsyncTests
                     if (warning == true)
                     {
                         txtwarnig = ($"W programie {fileName} brak wymiany narzedzia {searchtext}!!!");
+                        _logger.Error(txtwarnig);
                     }
                 }
             }
@@ -105,7 +188,7 @@ namespace ReadNCFilesAsyncTests
             return txtwarnig;
         }
 
-        private static string checkM17(string fileName)
+        private string checkM17(string fileName)
         {
             bool warning = false;
             string txtwarnig = "";
@@ -121,7 +204,7 @@ namespace ReadNCFilesAsyncTests
                 {
                     searchtext = "M30";
                 }
-                Console.WriteLine($"{fileName}  ... Check {searchtext} ");
+                _logger.Information($"{fileName}  ... Check {searchtext} ");
                 using (StreamReader sr = File.OpenText(fileName))
                 {
                     string s = String.Empty;
@@ -141,6 +224,7 @@ namespace ReadNCFilesAsyncTests
                     if (warning == true)
                     {
                         txtwarnig = ($"W programie {fileName} brak {searchtext}!!");
+                        _logger.Error(txtwarnig);
                     }
                 }
             }
@@ -150,14 +234,14 @@ namespace ReadNCFilesAsyncTests
             }
             return txtwarnig;
         }
-        private static string checklimitedPositionYZ(string file)
+        private string checklimitedPositionYZ(string file)
         {
             //MessageBox.Show("SPRAWDZANIE PRZEKROCZEN W OSI " + axis,"UWAGA!",MessageBoxButtons.OK, MessageBoxIcon.Information);
             bool warning = false;
             string txtwarnig = "";
             if (File.Exists(file) && file.Contains(".NC"))
             {
-                Console.WriteLine($"{file}  ... Check limited axis");
+                _logger.Information($"{file}  ... Check limited axis");
                 var lines = File.ReadAllLines(file);
                 string checkline = "";
                 string takeaxisstring = "";
@@ -215,6 +299,7 @@ namespace ReadNCFilesAsyncTests
                                         {
                                             if ((takeaxisvalue > AxisStopZ) & (axisZ == "Z"))
                                             {
+                                                _logger.Error("SPR.PRG =>" + file + " => przekroczono " + axisZ + ", PATRZ BLOK:" + line);
                                                 listAxis.Add("SPR.PRG =>" + file + " => przekroczono " + axisZ + ", PATRZ BLOK:" + line);
                                                 listaprzekroczenZ.Add(line);
                                             }
