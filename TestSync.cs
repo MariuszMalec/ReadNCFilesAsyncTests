@@ -11,6 +11,7 @@ namespace ReadNCFilesAsyncTests
         private static string SourceFiles = (@"SourceFiles");
 
         private ILogger _logger;
+        private int number;
 
         public TestSync(ILogger logger)
         {
@@ -21,20 +22,127 @@ namespace ReadNCFilesAsyncTests
         {
             var files = GetFiles(SourceFiles);
             foreach (var file in files)
-            {
+            {   
+                //var nc = File.ReadAllLines(file);
+
+                //checkM17New(nc, file);
                 checkM17(file);
                 checkM6(file);
                 check_E_ZDARZ(file, "E_ZDARZ=3");
                 //checklimitedPositionYZ(file);
-                checkSyntaxError(file);
+                checkSyntaxErrorNew(file);
             }
+        }
+        
+        private string ValidateNcLine(string line)
+        {
+            var result = string.Empty;
+            if (line.Contains("MSG") ||
+                line.Contains("DELTA") ||
+                line.Contains("RAPORT") ||
+                line.Contains("TRAFOOF") ||
+                line.Contains("STOPRE") ||
+                line.Contains("T=") ||
+                line.Contains("FGROUP") ||
+                line.Contains("TRANS") ||
+                line.Contains("FFWON") ||
+                line.Contains("E_ZDARZ") ||
+                line.Contains("FNORM") ||
+                line.Contains("CYCLE832"))
+                return result;
+            if (line.StartsWith(";"))
+                return result;
+            if (line.StartsWith("N"))
+            {
+                var splitN = line.Split(' ');
+                if (splitN.Length > 1)
+                    if (splitN[1].StartsWith(";"))
+                        return result;
+            }
+            if (!line.StartsWith(";") && line.Contains(";"))
+            {
+                return line.Split(";")[0];
+            }
+            return line;
+        }
+
+        private string checkSyntaxErrorNew(string file)
+        {
+            if (File.Exists(file))
+            {
+                _logger.Debug($"{file}  ... Check checkSyntaxError ");
+                var errors = string.Empty;
+                var words = new List<string>() { "X", "Y", "Z", "A", "B", "F" };
+
+                using (StreamReader sr = File.OpenText(file))
+                {
+                    string s = String.Empty;
+ 
+                    while ((s = sr.ReadLine()) != null)
+                    {
+                        var line = ValidateNcLine(s);
+
+                        if (line != "")
+                        {
+                            var xValue = line.Split(' ');
+                            if (xValue.Length > 0)
+                            {
+                                double number;
+                                foreach (var x in xValue)
+                                {
+                                    foreach (string word in words)
+                                    {
+                                        if (x.StartsWith(word))
+                                        {
+                                            if (!Double.TryParse(x.Substring(1), out number))
+                                            {
+                                                if (number == 0)
+                                                {
+                                                    _logger.Error($"{Path.GetFileName(file)}, Os {word}, Nie mozna z parsowac lini: {line} !");
+                                                    return ($"{Path.GetFileName(file)}, Nie mozna z parsowac lini: {line} !");//TODO pomimo bledow mam po wyjsciu pusta liste?
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return errors;
+            }
+            return string.Empty;
+        }
+
+        private string checkM17New(string[] lines, string fileName)
+        {
+            string txtwarnig = "";
+            string searchtext = "";
+            if (fileName != ".NC")
+            {
+                searchtext = "M17";
+            }
+            else
+            {
+                searchtext = "M30";
+            }
+            _logger.Debug($"{fileName}  ... Check {searchtext} ");
+
+            var existsearchtext = lines.Any(l => l.Contains(searchtext));
+
+            if (existsearchtext == false)
+            {
+                txtwarnig = ($"W programie {fileName} brak {searchtext}!!");
+                _logger.Error(txtwarnig);
+            }
+            return txtwarnig;
         }
 
         private string checkSyntaxError(string file)
         {
             if (File.Exists(file))
             {
-                _logger.Information($"{file}  ... Check checkSyntaxError ");
+                _logger.Debug($"{file}  ... Check checkSyntaxError ");
                 var errors = string.Empty;
                 var words = new List<string>() { "X", "Y", "Z", "A", "B", "F" };
                 var nc = File.ReadAllLines(file);
@@ -115,7 +223,7 @@ namespace ReadNCFilesAsyncTests
                 {
                     if (File.Exists(fileName))
                     {
-                        _logger.Information($"{fileName}  ... Check E_ZDARZ={e_zdarz} ");
+                        _logger.Debug($"{fileName}  ... Check E_ZDARZ={e_zdarz} ");
                         using (StreamReader sr = File.OpenText(fileName))
                         {
                             string s = String.Empty;
@@ -135,6 +243,7 @@ namespace ReadNCFilesAsyncTests
                             if (warning == true)
                             {
                                 txtwarnig = ($"W programie {fileName} brak E_ZDARZ={e_zdarz}");
+                                _logger.Error(txtwarnig);
                             }
                         }
                     }
@@ -160,7 +269,7 @@ namespace ReadNCFilesAsyncTests
                 {
                     searchtext = "L9006";
                 }
-                _logger.Information($"{fileName}  ... Check {searchtext}");
+                _logger.Debug($"{fileName}  ... Check {searchtext}");
                 using (StreamReader sr = File.OpenText(fileName))
                 {
                     string s = String.Empty;
@@ -204,7 +313,7 @@ namespace ReadNCFilesAsyncTests
                 {
                     searchtext = "M30";
                 }
-                _logger.Information($"{fileName}  ... Check {searchtext} ");
+                _logger.Debug($"{fileName}  ... Check {searchtext} ");
                 using (StreamReader sr = File.OpenText(fileName))
                 {
                     string s = String.Empty;
@@ -241,7 +350,7 @@ namespace ReadNCFilesAsyncTests
             string txtwarnig = "";
             if (File.Exists(file) && file.Contains(".NC"))
             {
-                _logger.Information($"{file}  ... Check limited axis");
+                _logger.Debug($"{file}  ... Check limited axis");
                 var lines = File.ReadAllLines(file);
                 string checkline = "";
                 string takeaxisstring = "";
